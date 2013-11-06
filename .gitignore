@@ -1,0 +1,4 @@
+obj/
+depfile.mk
+bm
+*.swp
