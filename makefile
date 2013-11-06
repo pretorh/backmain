@@ -18,7 +18,7 @@ bm: $(objs)
 	$(CC) $^ -o $@
 
 obj/%.o: src/%.c
-	$(CC) -ggdb -pedantic -Wall -Wextra --std=c99 -c $< -o $@
+	$(CC) -ggdb -pedantic -Wall -Wextra --std=gnu99 -c $< -o $@
 
 obj/:
 	mkdir $@
