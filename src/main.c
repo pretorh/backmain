@@ -14,6 +14,7 @@ struct Backup {
     char *rootDir;
     char *mirrorDir;
     char *newDir;
+    FILE *fd;
 };
 
 void printUsage() {
@@ -53,12 +54,17 @@ void makeDirOrFail(const char *path) {
     }
 }
 
-void setupDataDir(struct Backup *backup) {
+void prepare(struct Backup *backup) {
     if (chdir(backup->dir)) {
         printf("Failed to change to data directory: %s\n", strerror(errno));
         exit(1);
     }
    
+    if ((backup->fd = fopen(backup->file, "r")) == 0) {
+        printf("Failed to open backup file descriptor: %s\n", strerror(errno));
+        exit(1);
+    }
+
     makeDirOrFail(backup->rootDir);
     makeDirOrFail(backup->mirrorDir);
     makeDirOrFail(backup->newDir);
@@ -81,7 +87,9 @@ int main(int argc, const char **argv) {
     printf("Mirror: %s\n", backup.mirrorDir);
     printf("New   : %s\n", backup.newDir);
 
-    setupDataDir(&backup);
+    prepare(&backup);
+
+    fclose(backup.fd);
 
     printf("bye\n");
     return 0;
