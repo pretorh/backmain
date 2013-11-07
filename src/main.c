@@ -70,6 +70,34 @@ void prepare(struct Backup *backup) {
     makeDirOrFail(backup->newDir);
 }
 
+void executeNextBlock(FILE *fd) {
+    char line[1000];
+    bool done, isComment = false;
+    while (!done && fgets(line, 1000, fd)) {
+        done = !strcmp(line, "\n");
+        isComment = strlen(line) >= 1 && line[0] == '#';
+
+        if (!done && !isComment) {
+            printf("%s\n", line);
+            system(line);
+        }
+    }
+}
+
+void performMirror(struct Backup *backup) {
+    if (chdir(backup->mirrorDir)) {
+        printf("Failed to chdir mirror: %s\n", strerror(errno));
+        exit(1);
+    }
+
+    executeNextBlock(backup->fd);
+
+    if (chdir("../")) {
+        printf("Failed to chdir data: %s\n", strerror(errno));
+        exit(1);
+    }
+}
+
 int main(int argc, const char **argv) {
     struct Backup backup;
 
@@ -88,6 +116,7 @@ int main(int argc, const char **argv) {
     printf("New   : %s\n", backup.newDir);
 
     prepare(&backup);
+    performMirror(&backup);
 
     fclose(backup.fd);
 
