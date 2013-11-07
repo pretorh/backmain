@@ -100,7 +100,7 @@ void performMirror(struct Backup *backup) {
     }
 }
 
-void hashFile(const char *path) {
+void hashFile(const char *path, char *shaHash) {
     printf("%s\n", path);
     char buf[4096];
     FILE *fd = fopen(path, "rb");
@@ -114,7 +114,6 @@ void hashFile(const char *path) {
     unsigned char hash[SHA_DIGEST_LENGTH];
     SHA1_Final(hash, &shaCtx);
     
-    char shaHash[SHA_DIGEST_LENGTH * 2 + 1];
     for (int offset = 0; offset < SHA_DIGEST_LENGTH; ++offset) {
         sprintf(shaHash + offset * 2, "%02x", hash[offset]);
     }
@@ -123,23 +122,28 @@ void hashFile(const char *path) {
     printf("%s\n", shaHash);
 }
 
-void hashFiles(const char *path) {
+void hashFiles(const char *path, struct Backup *backup) {
     DIR *dir;
     struct dirent *entry;
+    char shaHash[SHA_DIGEST_LENGTH * 2 + 1];
+    char relative[1024];
+    char hashedFile[1024];
+    struct stat entryStat;
 
     if ((dir = opendir(path)) != NULL) {
         while ((entry = readdir(dir)) != NULL) {
             if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
-                char relative[1024];
                 int len = snprintf(relative, sizeof(relative) - 1, "%s/%s", path, entry->d_name);
                 relative[len] = 0;
 
-                struct stat entryStat;
                 stat(relative, &entryStat);
                 if (S_ISDIR(entryStat.st_mode)) {
-                    hashFiles(relative);
+                    hashFiles(relative, backup);
                 } else {
-                    hashFile(relative);
+                    hashFile(relative, shaHash);
+                    len = snprintf(hashedFile, sizeof(hashedFile) - 1, "%s/%s", backup->newDir, shaHash);
+                    hashedFile[len] = 0;
+                    link(relative, hashedFile);
                 }
             }
         }
@@ -148,7 +152,7 @@ void hashFiles(const char *path) {
 }
 
 void hashMirrored(struct Backup *backup) {
-    hashFiles(backup->mirrorDir);
+    hashFiles(backup->mirrorDir, backup);
 }
 
 int main(int argc, const char **argv) {
