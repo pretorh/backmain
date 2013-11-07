@@ -15,7 +15,7 @@ clean:
 	rm -f bm depfile.mk
 
 bm: $(objs)
-	$(CC) $^ -o $@
+	$(CC) $^ -o $@ -lcrypto
 
 obj/%.o: src/%.c
 	$(CC) -ggdb -pedantic -Wall -Wextra --std=gnu99 -c $< -o $@

@@ -6,6 +6,8 @@
 #include <errno.h>
 #include <unistd.h>
 #include <sys/stat.h>
+#include <dirent.h>
+#include <openssl/sha.h>
 
 struct Backup {
     bool isFull;
@@ -92,10 +94,61 @@ void performMirror(struct Backup *backup) {
 
     executeNextBlock(backup->fd);
 
-    if (chdir("../")) {
+    if (chdir("../../")) {
         printf("Failed to chdir data: %s\n", strerror(errno));
         exit(1);
     }
+}
+
+void hashFile(const char *path) {
+    printf("%s\n", path);
+    char buf[4096];
+    FILE *fd = fopen(path, "rb");
+    size_t read;
+    SHA_CTX shaCtx;
+    SHA1_Init(&shaCtx);
+    while ((read = fread(buf, 1, sizeof(buf), fd))) {
+        SHA1_Update(&shaCtx, buf, read);
+    }
+    fclose(fd);
+    unsigned char hash[SHA_DIGEST_LENGTH];
+    SHA1_Final(hash, &shaCtx);
+    
+    char shaHash[SHA_DIGEST_LENGTH * 2 + 1];
+    for (int offset = 0; offset < SHA_DIGEST_LENGTH; ++offset) {
+        sprintf(shaHash + offset * 2, "%02x", hash[offset]);
+    }
+    shaHash[SHA_DIGEST_LENGTH * 2] = 0;
+
+    printf("%s\n", shaHash);
+}
+
+void hashFiles(const char *path) {
+    DIR *dir;
+    struct dirent *entry;
+
+    if ((dir = opendir(path)) != NULL) {
+        while ((entry = readdir(dir)) != NULL) {
+            if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
+                char relative[1024];
+                int len = snprintf(relative, sizeof(relative) - 1, "%s/%s", path, entry->d_name);
+                relative[len] = 0;
+
+                struct stat entryStat;
+                stat(relative, &entryStat);
+                if (S_ISDIR(entryStat.st_mode)) {
+                    hashFiles(relative);
+                } else {
+                    hashFile(relative);
+                }
+            }
+        }
+        closedir(dir);
+    }
+}
+
+void hashMirrored(struct Backup *backup) {
+    hashFiles(backup->mirrorDir);
 }
 
 int main(int argc, const char **argv) {
@@ -117,6 +170,7 @@ int main(int argc, const char **argv) {
 
     prepare(&backup);
     performMirror(&backup);
+    hashMirrored(&backup);
 
     fclose(backup.fd);
 
