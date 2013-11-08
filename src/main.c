@@ -42,12 +42,12 @@ void getDescriptorFile(const char *argv, struct Backup *backup) {
 
 void prepare(struct Backup *backup) {
     if (chdir(backup->dir)) {
-        printf("Failed to change to data directory: %s\n", strerror(errno));
+        perror("Failed to change to data directory");
         exit(1);
     }
    
     if ((backup->fd = fopen(backup->file, "r")) == 0) {
-        printf("Failed to open backup file descriptor: %s\n", strerror(errno));
+        perror("Failed to open backup file descriptor");
         exit(1);
     }
 
@@ -58,14 +58,14 @@ void prepare(struct Backup *backup) {
 
 void performMirror(struct Backup *backup) {
     if (chdir(backup->mirrorDir)) {
-        printf("Failed to chdir mirror: %s\n", strerror(errno));
+        perror("Failed to chdir mirror");
         exit(1);
     }
 
     executeNextBlock(backup->fd);
 
     if (chdir("../../")) {
-        printf("Failed to chdir data: %s\n", strerror(errno));
+        perror("Failed to chdir data");
         exit(1);
     }
 }
