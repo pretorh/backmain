@@ -5,9 +5,9 @@ struct Backup {
     bool isFull;
     char *dir;
     char *file;
-    char *rootDir;
-    char *mirrorDir;
-    char *newDir;
+    char rootDir[1000];
+    char mirrorDir[1000];
+    char newDir[1000];
     FILE *fd;
 };
 

@@ -26,18 +26,12 @@ void getAction(const char *argv, struct Backup *backup) {
     backup->isFull = isFull;
 }
 
-void getDescriptorFile(const char *argv, struct Backup *backup) {
+void getBackupPaths(const char *argv, struct Backup *backup) {
     backup->dir = dirname(strdup(argv));
     backup->file = basename(strdup(argv));
-    
-    backup->rootDir = strdup(backup->file);
-    strcat(backup->rootDir, ".dat/");
-    
-    backup->mirrorDir = strdup(backup->rootDir);
-    strcat(backup->mirrorDir, "mirror/");
-
-    backup->newDir = strdup(backup->rootDir);
-    strcat(backup->newDir, "new/");
+    snprintf(backup->rootDir, sizeof(backup->rootDir) - 1, "%s.dat", backup->file);
+    snprintf(backup->mirrorDir, sizeof(backup->mirrorDir) - 1, "%s/mirror", backup->rootDir);
+    snprintf(backup->newDir, sizeof(backup->newDir) - 1, "%s/new", backup->rootDir);
 }
 
 void prepare(struct Backup *backup) {
@@ -133,7 +127,7 @@ int main(int argc, const char **argv) {
     }
 
     getAction(argv[1], &backup);
-    getDescriptorFile(argv[2], &backup);
+    getBackupPaths(argv[2], &backup);
 
     printf("Action: %s\n", backup.isFull ? "full" : "incremental");
     printf("Dir   : %s\n", backup.dir);
