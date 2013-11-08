@@ -8,16 +8,7 @@
 #include <sys/stat.h>
 #include <dirent.h>
 #include <openssl/sha.h>
-
-struct Backup {
-    bool isFull;
-    char *dir;
-    char *file;
-    char *rootDir;
-    char *mirrorDir;
-    char *newDir;
-    FILE *fd;
-};
+#include "shared.h"
 
 void printUsage() {
     printf("Invalid arguments:\n");
@@ -49,13 +40,6 @@ void getDescriptorFile(const char *argv, struct Backup *backup) {
     strcat(backup->newDir, "new/");
 }
 
-void makeDirOrFail(const char *path) {
-    if (access(path, F_OK) && (mkdir(path, S_IRWXU))) {
-        printf("Failed to create directory %s: %s\n", path, strerror(errno));
-        exit(1);
-    }
-}
-
 void prepare(struct Backup *backup) {
     if (chdir(backup->dir)) {
         printf("Failed to change to data directory: %s\n", strerror(errno));
@@ -70,20 +54,6 @@ void prepare(struct Backup *backup) {
     makeDirOrFail(backup->rootDir);
     makeDirOrFail(backup->mirrorDir);
     makeDirOrFail(backup->newDir);
-}
-
-void executeNextBlock(FILE *fd) {
-    char line[1000];
-    bool done, isComment = false;
-    while (!done && fgets(line, 1000, fd)) {
-        done = !strcmp(line, "\n");
-        isComment = strlen(line) >= 1 && line[0] == '#';
-
-        if (!done && !isComment) {
-            printf("%s\n", line);
-            system(line);
-        }
-    }
 }
 
 void performMirror(struct Backup *backup) {
