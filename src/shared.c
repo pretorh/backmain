@@ -27,3 +27,15 @@ void executeNextBlock(FILE *fd) {
         }
     }
 }
+
+void saveFileEntry(struct Backup *backup, struct FileEntry *entry) {
+    if (backup->entryCount == backup->entrySize) {
+        backup->entrySize = backup->entrySize == 0 ? 16 : backup->entrySize * 2;
+        backup->entries = realloc(backup->entries, backup->entrySize * sizeof(struct FileEntry));
+    }
+    backup->entries[backup->entryCount++] = *entry;
+}
+
+void freeBackup(struct Backup *backup) {
+    free(backup->entries);
+}

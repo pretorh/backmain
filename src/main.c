@@ -24,6 +24,9 @@ void getAction(const char *argv, struct Backup *backup) {
         printUsage();
     }
     backup->isFull = isFull;
+    backup->entryCount = 0;
+    backup->entrySize = 0;
+    backup->entries = 0;
 }
 
 void getBackupPaths(const char *argv, struct Backup *backup) {
@@ -65,7 +68,6 @@ void performMirror(struct Backup *backup) {
 }
 
 void hashFile(const char *path, char *shaHash) {
-    printf("%s\n", path);
     char buf[4096];
     FILE *fd = fopen(path, "rb");
     size_t read;
@@ -82,32 +84,35 @@ void hashFile(const char *path, char *shaHash) {
         sprintf(shaHash + offset * 2, "%02x", hash[offset]);
     }
     shaHash[SHA_DIGEST_LENGTH * 2] = 0;
-
-    printf("%s\n", shaHash);
 }
 
 void hashFiles(const char *path, struct Backup *backup) {
     DIR *dir;
     struct dirent *entry;
-    char shaHash[SHA_DIGEST_LENGTH * 2 + 1];
-    char relative[1024];
     char hashedFile[1024];
     struct stat entryStat;
 
     if ((dir = opendir(path)) != NULL) {
         while ((entry = readdir(dir)) != NULL) {
             if (strcmp(entry->d_name, ".") && strcmp(entry->d_name, "..")) {
-                int len = snprintf(relative, sizeof(relative) - 1, "%s/%s", path, entry->d_name);
-                relative[len] = 0;
+                struct FileEntry fileEntry;
+                int len = snprintf(fileEntry.path, sizeof(fileEntry.path) - 1, "%s/%s", path, entry->d_name);
+                fileEntry.path[len] = 0;
 
-                stat(relative, &entryStat);
+                stat(fileEntry.path, &entryStat);
                 if (S_ISDIR(entryStat.st_mode)) {
-                    hashFiles(relative, backup);
+                    hashFiles(fileEntry.path, backup);
                 } else {
-                    hashFile(relative, shaHash);
-                    len = snprintf(hashedFile, sizeof(hashedFile) - 1, "%s/%s", backup->newDir, shaHash);
+                    hashFile(fileEntry.path, fileEntry.hash);
+                    len = snprintf(hashedFile, sizeof(hashedFile) - 1, "%s/%s", backup->newDir, fileEntry.hash);
                     hashedFile[len] = 0;
-                    link(relative, hashedFile);
+
+                    fileEntry.isNew = access(hashedFile, F_OK);
+                    saveFileEntry(backup, &fileEntry);
+
+                    if (fileEntry.isNew) {
+                        link(fileEntry.path, hashedFile);
+                    }
                 }
             }
         }
@@ -141,6 +146,15 @@ int main(int argc, const char **argv) {
     hashMirrored(&backup);
 
     fclose(backup.fd);
+
+    for (int i = 0; i < backup.entryCount; ++i) {
+        printf("%s : %s%s\n",
+            backup.entries[i].hash,
+            backup.entries[i].isNew ? "*" : "",
+            backup.entries[i].path);
+    }
+
+    freeBackup(&backup);
 
     printf("bye\n");
     return 0;
