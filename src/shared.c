@@ -28,6 +28,13 @@ void executeNextBlock(FILE *fd) {
     }
 }
 
+void initBackup(struct Backup *backup, int isFull) {
+    backup->isFull = isFull;
+    backup->entryCount = 0;
+    backup->entrySize = 0;
+    backup->entries = 0;
+}
+
 void saveFileEntry(struct Backup *backup, struct FileEntry *entry) {
     if (backup->entryCount == backup->entrySize) {
         backup->entrySize = backup->entrySize == 0 ? 16 : backup->entrySize * 2;

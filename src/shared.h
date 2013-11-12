@@ -22,6 +22,7 @@ struct FileEntry {
 
 void makeDirOrFail(const char *path);
 void executeNextBlock(FILE *fd);
+void initBackup(struct Backup *backup, int isFull);
 void saveFileEntry(struct Backup *Backup, struct FileEntry *entry);
 void freeBackup(struct Backup *backup);
 

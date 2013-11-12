@@ -23,10 +23,7 @@ void getAction(const char *argv, struct Backup *backup) {
     if (!isFull && !isIncremental) {
         printUsage();
     }
-    backup->isFull = isFull;
-    backup->entryCount = 0;
-    backup->entrySize = 0;
-    backup->entries = 0;
+    initBackup(backup, isFull);
 }
 
 void getBackupPaths(const char *argv, struct Backup *backup) {
